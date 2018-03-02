@@ -1,6 +1,8 @@
 package shell
 
 import (
+	"runtime"
+
 	sl "github.com/hashicorp/packer/common/shell-local"
 	"github.com/hashicorp/packer/packer"
 )
@@ -10,9 +12,16 @@ type Provisioner struct {
 }
 
 func (p *Provisioner) Prepare(raws ...interface{}) error {
-	err := sl.Decode(&p.config, raws)
+	err := sl.Decode(&p.config, raws...)
 	if err != nil {
 		return err
+	}
+	if len(p.config.ExecuteCommand) == 0 && runtime.GOOS == "windows" {
+		p.config.ExecuteCommand = []string{
+			"bash",
+			"-c",
+			"\"{{.Vars}} {{.Script}}\"",
+		}
 	}
 
 	return sl.Validate(&p.config)
